@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DeviceTrafficMonitor.Core/DeviceTrafficMonitor.Core.csproj" />
+    <Project Path="src/DeviceTrafficMonitor.Server/DeviceTrafficMonitor.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DeviceTrafficMonitor.Server.Tests/DeviceTrafficMonitor.Server.Tests.csproj" />
+    <Project Path="tests/MockDeviceMonitor/MockDeviceMonitor.csproj" />
+  </Folder>
+</Solution>
