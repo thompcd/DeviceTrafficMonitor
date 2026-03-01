@@ -18,6 +18,11 @@ public class MainWindow : Window
     private readonly ObservableCollection<string> _deviceItems = new();
     private readonly ObservableCollection<string> _trafficItems = new();
 
+    // Severity color attributes
+    private readonly Terminal.Gui.Attribute _errorAttr = new(ColorName16.Red, ColorName16.Black);
+    private readonly Terminal.Gui.Attribute _warnAttr = new(ColorName16.Yellow, ColorName16.Black);
+    private readonly Terminal.Gui.Attribute _debugAttr = new(ColorName16.DarkGray, ColorName16.Black);
+
     // Track which device is selected for filtering ("" = all)
     private string _selectedDeviceId = "";
 
@@ -71,6 +76,7 @@ public class MainWindow : Window
             Height = Dim.Fill(),
             Source = new ListWrapper<string>(_trafficItems)
         };
+        _trafficLog.RowRender += OnTrafficRowRender;
         trafficFrame.Add(_trafficLog);
 
         // Status bar at bottom
@@ -114,6 +120,21 @@ public class MainWindow : Window
         _trafficItems.Clear();
         _lastSeenLineId = 0;
         _trafficLog.SetSource(_trafficItems);
+    }
+
+    private void OnTrafficRowRender(object? sender, ListViewRowEventArgs e)
+    {
+        if (e.Row < 0 || e.Row >= _trafficItems.Count) return;
+
+        var line = _trafficItems[e.Row];
+
+        if (line.Contains("[ERROR]"))
+            e.RowAttribute = _errorAttr;
+        else if (line.Contains("[WARN"))
+            e.RowAttribute = _warnAttr;
+        else if (line.Contains("[DEBUG]"))
+            e.RowAttribute = _debugAttr;
+        // INFO lines keep the default attribute (white on black)
     }
 
     private void OnKeyDown(object? sender, Key e)
