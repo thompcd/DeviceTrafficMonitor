@@ -44,9 +44,10 @@ public static class RegisterDialog
         };
 
         // Buttons
-        var registerBtn = new Button { X = 22, Y = 13, Text = "Register" };
+        var registerBtn = new Button { X = 22, Y = 13, Text = "Register", IsDefault = true };
         var cancelBtn = new Button { X = 37, Y = 13, Text = "Cancel" };
 
+        dialog.KeyDown += (_, k) => { if (k == Key.Esc) { Application.RequestStop(); k.Handled = true; } };
         cancelBtn.Accepting += (_, _) => Application.RequestStop();
 
         registerBtn.Accepting += (_, _) =>

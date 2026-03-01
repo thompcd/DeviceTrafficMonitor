@@ -53,9 +53,10 @@ public static class SummaryDialog
                 Source = new ListWrapper<string>(items)
             };
 
-            var closeBtn = new Button { X = Pos.Center(), Y = Pos.AnchorEnd(1), Text = "Close" };
+            var closeBtn = new Button { X = Pos.Center(), Y = Pos.AnchorEnd(1), Text = "Close", IsDefault = true };
             closeBtn.Accepting += (_, _) => Application.RequestStop();
 
+            dialog.KeyDown += (_, k) => { if (k == Key.Esc) { Application.RequestStop(); k.Handled = true; } };
             dialog.Add(listView, closeBtn);
             Application.Run(dialog);
         }

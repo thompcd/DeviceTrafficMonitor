@@ -59,8 +59,10 @@ public static class QueryDialog
         var limitField = new TextField { X = 15, Y = 11, Width = 40, Text = "100" };
 
         // Buttons
-        var executeBtn = new Button { X = 15, Y = 13, Text = "Execute" };
+        var executeBtn = new Button { X = 15, Y = 13, Text = "Execute", IsDefault = true };
         var cancelBtn = new Button { X = 30, Y = 13, Text = "Cancel" };
+
+        dialog.KeyDown += (_, k) => { if (k == Key.Esc) { Application.RequestStop(); k.Handled = true; } };
 
         cancelBtn.Accepting += (_, _) => Application.RequestStop();
 
@@ -131,9 +133,10 @@ public static class QueryDialog
             Source = new ListWrapper<string>(items)
         };
 
-        var closeBtn = new Button { X = Pos.Center(), Y = Pos.AnchorEnd(1), Text = "Close" };
+        var closeBtn = new Button { X = Pos.Center(), Y = Pos.AnchorEnd(1), Text = "Close", IsDefault = true };
         closeBtn.Accepting += (_, _) => Application.RequestStop();
 
+        resultsDialog.KeyDown += (_, k) => { if (k == Key.Esc) { Application.RequestStop(); k.Handled = true; } };
         resultsDialog.Add(listView, closeBtn);
         Application.Run(resultsDialog);
     }

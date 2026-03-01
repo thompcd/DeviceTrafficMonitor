@@ -139,7 +139,12 @@ public class MainWindow : Window
 
     private void OnKeyDown(object? sender, Key e)
     {
-        if (e == Key.F2)
+        if (e == Key.Q.WithCtrl)
+        {
+            Application.RequestStop();
+            e.Handled = true;
+        }
+        else if (e == Key.F2)
         {
             _ = StartSelectedDevice();
             e.Handled = true;

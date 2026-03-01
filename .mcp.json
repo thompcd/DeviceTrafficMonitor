@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "device-traffic-monitor": {
+      "command": "dotnet",
+      "args": ["run", "--project", "src/DeviceTrafficMonitor.Server"],
+      "env": {}
+    }
+  }
+}

@@ -44,9 +44,10 @@ public static class SearchDialog
         var ctxField = new TextField { X = 18, Y = 7, Width = 40, Text = "3" };
 
         // Buttons
-        var searchBtn = new Button { X = 18, Y = 9, Text = "Search" };
+        var searchBtn = new Button { X = 18, Y = 9, Text = "Search", IsDefault = true };
         var cancelBtn = new Button { X = 33, Y = 9, Text = "Cancel" };
 
+        dialog.KeyDown += (_, k) => { if (k == Key.Esc) { Application.RequestStop(); k.Handled = true; } };
         cancelBtn.Accepting += (_, _) => Application.RequestStop();
 
         searchBtn.Accepting += (_, _) =>
@@ -131,9 +132,10 @@ public static class SearchDialog
             Source = new ListWrapper<string>(items)
         };
 
-        var closeBtn = new Button { X = Pos.Center(), Y = Pos.AnchorEnd(1), Text = "Close" };
+        var closeBtn = new Button { X = Pos.Center(), Y = Pos.AnchorEnd(1), Text = "Close", IsDefault = true };
         closeBtn.Accepting += (_, _) => Application.RequestStop();
 
+        resultsDialog.KeyDown += (_, k) => { if (k == Key.Esc) { Application.RequestStop(); k.Handled = true; } };
         resultsDialog.Add(listView, closeBtn);
         Application.Run(resultsDialog);
     }
