@@ -87,6 +87,18 @@ public class MainWindow : Window
 
         // Set up keyboard shortcuts
         KeyDown += OnKeyDown;
+
+        // Initial data load
+        RefreshDeviceList();
+
+        // Background poll timer — 500ms
+        Application.AddTimeout(TimeSpan.FromMilliseconds(500), () =>
+        {
+            RefreshDeviceList();
+            _ = RefreshTrafficLog();
+            RefreshStatusBar();
+            return true; // keep repeating
+        });
     }
 
     private void OnDeviceSelectionChanged(object? sender, ListViewItemEventArgs e)
@@ -141,6 +153,72 @@ public class MainWindow : Window
             _ = RemoveSelectedDevice();
             e.Handled = true;
         }
+    }
+
+    private void RefreshDeviceList()
+    {
+        var status = _engine.GetStatus();
+        var devices = _registry.GetAll();
+        var pollerMap = status.Devices.ToDictionary(d => d.Id);
+
+        _deviceItems.Clear();
+        _deviceItems.Add("  All Devices");
+
+        foreach (var dev in devices)
+        {
+            var polling = pollerMap.TryGetValue(dev.Id, out var p) && p.Polling;
+            var indicator = polling ? "[ON] " : "[OFF]";
+            var prefix = dev.Id == _selectedDeviceId ? "> " : "  ";
+            _deviceItems.Add($"{prefix}{dev.DisplayName} {indicator}");
+        }
+
+        _deviceList.SetSource(_deviceItems);
+    }
+
+    private async Task RefreshTrafficLog()
+    {
+        try
+        {
+            var device = string.IsNullOrEmpty(_selectedDeviceId) ? null : _selectedDeviceId;
+            var (lines, _) = await _store.QueryAsync(
+                device: device,
+                startTime: DateTimeOffset.UtcNow.AddMinutes(-30),
+                limit: 200,
+                ct: CancellationToken.None);
+
+            if (lines.Count == 0) return;
+
+            var maxId = lines.Max(l => l.Id);
+            if (maxId <= _lastSeenLineId) return;
+
+            _trafficItems.Clear();
+            foreach (var line in lines)
+            {
+                var sev = (line.Severity ?? "INFO").PadRight(5);
+                var ts = line.Timestamp.ToLocalTime().ToString("HH:mm:ss");
+                _trafficItems.Add($"{ts} [{sev}] {line.Device}: {line.Content}");
+            }
+
+            _lastSeenLineId = maxId;
+            _trafficLog.SetSource(_trafficItems);
+            // Auto-scroll to bottom
+            if (_trafficItems.Count > 0)
+                _trafficLog.SelectedItem = _trafficItems.Count - 1;
+        }
+        catch
+        {
+            // Swallow errors during background refresh
+        }
+    }
+
+    private void RefreshStatusBar()
+    {
+        var status = _engine.GetStatus();
+        var totalDevices = _registry.GetAll().Length;
+        var activeDevices = status.ActivePollers;
+        _statusLabel.Text =
+            $"Engine: {status.State} | Devices: {activeDevices}/{totalDevices} | Lines: {status.TotalLines}\n" +
+            " F2:Start F3:Stop F5:Query F6:Search F7:Summary F8:Register Del:Remove Ctrl+Q:Quit";
     }
 
     // Stub methods — implemented in later tasks
