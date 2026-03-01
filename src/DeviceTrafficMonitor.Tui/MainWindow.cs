@@ -221,12 +221,70 @@ public class MainWindow : Window
             " F2:Start F3:Stop F5:Query F6:Search F7:Summary F8:Register Del:Remove Ctrl+Q:Quit";
     }
 
-    // Stub methods — implemented in later tasks
-    private async Task StartSelectedDevice() { }
-    private async Task StopSelectedDevice() { }
-    private void ShowQueryDialog() { }
-    private void ShowSearchDialog() { }
-    private void ShowSummaryDialog() { }
-    private void ShowRegisterDialog() { }
-    private async Task RemoveSelectedDevice() { }
+    private async Task StartSelectedDevice()
+    {
+        try
+        {
+            string[]? deviceIds = string.IsNullOrEmpty(_selectedDeviceId) ? null : [_selectedDeviceId];
+            var result = await _engine.StartAsync(deviceIds, CancellationToken.None);
+            var msg = result.Started
+                ? $"Started: {string.Join(", ", result.DevicesStarted)}"
+                : $"Errors: {string.Join(", ", result.Errors.Values)}";
+            if (result.AlreadyRunning.Length > 0)
+                msg += $"\nAlready running: {string.Join(", ", result.AlreadyRunning)}";
+            MessageBox.Query("Start Result", msg, "OK");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Query("Error", $"Start failed: {ex.Message}", "OK");
+        }
+    }
+
+    private async Task StopSelectedDevice()
+    {
+        try
+        {
+            string[]? deviceIds = string.IsNullOrEmpty(_selectedDeviceId) ? null : [_selectedDeviceId];
+            var result = await _engine.StopAsync(deviceIds, flush: true, CancellationToken.None);
+            var msg = result.Stopped
+                ? $"Stopped: {string.Join(", ", result.DevicesStopped)}\nLines flushed: {result.LinesFlushed}"
+                : "No devices were stopped.";
+            MessageBox.Query("Stop Result", msg, "OK");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Query("Error", $"Stop failed: {ex.Message}", "OK");
+        }
+    }
+
+    private void ShowQueryDialog() => Dialogs.QueryDialog.Show(_store, _registry);
+
+    private void ShowSearchDialog() => Dialogs.SearchDialog.Show(_store, _registry);
+
+    private void ShowSummaryDialog() => Dialogs.SummaryDialog.Show(_store);
+
+    private void ShowRegisterDialog() => Dialogs.RegisterDialog.Show(_engine);
+
+    private async Task RemoveSelectedDevice()
+    {
+        if (string.IsNullOrEmpty(_selectedDeviceId))
+        {
+            MessageBox.Query("Error", "Select a device to remove.", "OK");
+            return;
+        }
+        var confirm = MessageBox.Query("Confirm Remove",
+            $"Remove device '{_selectedDeviceId}'? This will stop recording if active.",
+            "Yes", "No");
+        if (confirm != 0) return;
+        try
+        {
+            var result = await _engine.RemoveAsync(_selectedDeviceId, force: true, CancellationToken.None);
+            MessageBox.Query("Remove Result", result.Message, "OK");
+            _selectedDeviceId = "";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Query("Error", $"Remove failed: {ex.Message}", "OK");
+        }
+    }
 }
