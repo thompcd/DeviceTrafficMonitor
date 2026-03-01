@@ -3,6 +3,7 @@ using DeviceTrafficMonitor.Core.Models;
 using DeviceTrafficMonitor.Server;
 using DeviceTrafficMonitor.Server.Engine;
 using DeviceTrafficMonitor.Server.Storage;
+using DeviceTrafficMonitor.Tui;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Terminal.Gui;
