@@ -1,53 +1,145 @@
 # Device Traffic Monitor
 
-A .NET 10 MCP server that records embedded device console traffic into a local SQLite database and exposes query/control tools to an AI agent.
+An MCP server that records and queries device console traffic from embedded devices. Connects to device monitors over stdio, continuously polls their output, stores it in SQLite, and exposes query/search/control tools via the [Model Context Protocol](https://modelcontextprotocol.io/).
+
+## Install
+
+```bash
+dotnet tool install -g DeviceTrafficMonitor
+```
+
+Requires .NET 10 SDK.
 
 ## Quick Start
 
-```bash
-# Build
-dotnet build
+### 1. Configure devices
 
-# Run (MCP server starts on stdio)
-dotnet run --project src/DeviceTrafficMonitor.Server
+Create `appsettings.json` in your working directory (or use `register_monitor` at runtime):
 
-# Publish self-contained executable
-dotnet publish src/DeviceTrafficMonitor.Server -r osx-arm64 -o publish/
+```json
+{
+  "Devices": [
+    {
+      "Id": "my-device",
+      "DisplayName": "My Device",
+      "McpServerCommand": "/path/to/device-monitor",
+      "McpServerArgs": ["--port", "/dev/ttyUSB0"],
+      "PollDurationSeconds": 2,
+      "AutoStart": true
+    }
+  ]
+}
 ```
 
-The database bootstraps automatically on first run — no setup needed.
+### 2. Connect from an AI assistant
 
-## MCP Client Configuration
+**Claude Code** — add `.mcp.json` to your project:
 
-Add to your AI agent's MCP configuration:
+```json
+{
+  "mcpServers": {
+    "device-traffic-monitor": {
+      "command": "device-traffic-monitor"
+    }
+  }
+}
+```
+
+**Claude Desktop** — add to your config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "device-traffic-monitor": {
+      "command": "device-traffic-monitor"
+    }
+  }
+}
+```
+
+**From source** (without installing):
 
 ```json
 {
   "mcpServers": {
     "device-traffic-monitor": {
       "command": "dotnet",
-      "args": ["run", "--project", "/path/to/src/DeviceTrafficMonitor.Server"]
+      "args": ["run", "--project", "path/to/src/DeviceTrafficMonitor.Server"]
     }
   }
 }
 ```
 
-Or with a published executable:
+## Tools
 
-```json
-{
-  "mcpServers": {
-    "device-traffic-monitor": {
-      "command": "/path/to/publish/DeviceTrafficMonitor",
-      "args": []
-    }
-  }
-}
+### Query (Read-Only)
+
+| Tool | Description |
+|------|-------------|
+| `query_traffic` | Query recorded traffic by time range, device, severity, text filters |
+| `search_traffic` | Regex search with surrounding context lines |
+| `get_traffic_summary` | Per-device aggregate stats (line count, errors, warns) |
+| `get_device_status` | Real-time health status of monitored devices |
+| `list_devices` | List all registered device monitors |
+| `get_recorder_status` | Engine state, uptime, active pollers |
+
+### Control (State-Changing)
+
+| Tool | Description |
+|------|-------------|
+| `start_recorder` | Start recording (all or specific devices) |
+| `stop_recorder` | Stop recording with optional buffer flush |
+| `register_monitor` | Register a new device monitor at runtime |
+| `remove_monitor` | Remove a device and stop its recording |
+
+### Time Parameters
+
+All time parameters support relative expressions and ISO 8601:
+
+| Format | Example | Meaning |
+|--------|---------|---------|
+| Relative | `-30s`, `-5m`, `-1h`, `-7d` | Seconds/minutes/hours/days ago |
+| Absolute | `2026-03-01T10:30:00Z` | ISO 8601 timestamp |
+
+### Example Agent Workflow
+
 ```
+1. list_devices          → see what's configured
+2. start_recorder        → begin recording all devices
+3. get_recorder_status   → verify recording is active
+4. query_traffic(-30s)   → check recent output
+5. search_traffic(ERROR) → find errors with context
+6. get_traffic_summary   → aggregate view
+7. stop_recorder         → stop when done
+```
+
+## Device Monitors
+
+A device monitor is an MCP server that exposes a `monitor_console(duration_seconds)` tool. The recorder spawns it as a subprocess, polls it continuously, parses the output (auto-detecting severity, direction, timestamps), and stores it in SQLite with deduplication.
+
+See [docs/device-monitor-requirements.md](docs/device-monitor-requirements.md) for the full spec and [docs/mcp-integration.md](docs/mcp-integration.md) for detailed tool parameter reference.
+
+## Interactive TUI
+
+A terminal UI is included for manual operation:
+
+```bash
+dotnet run --project src/DeviceTrafficMonitor.Tui/
+```
+
+| Key | Action |
+|-----|--------|
+| F2/F3 | Start/Stop recording |
+| F5 | Query traffic |
+| F6 | Search traffic |
+| F7 | Traffic summary |
+| F8 | Register device |
+| Del | Remove device |
+| Ctrl+Q | Quit |
 
 ## Configuration
 
-Edit `src/DeviceTrafficMonitor.Server/appsettings.json`:
+Full `appsettings.json`:
 
 ```json
 {
@@ -62,75 +154,31 @@ Edit `src/DeviceTrafficMonitor.Server/appsettings.json`:
     "DrainTimeoutSeconds": 10,
     "DefaultPollDurationSeconds": 2
   },
-  "Devices": [
-    {
-      "Id": "my-device",
-      "DisplayName": "My Device",
-      "McpServerCommand": "/path/to/device-mcp-server",
-      "McpServerArgs": [],
-      "PollDurationSeconds": 2,
-      "AutoStart": true,
-      "Tags": { "location": "lab" }
-    }
-  ]
+  "Devices": []
 }
 ```
 
-**Data directory defaults:**
-- macOS: `~/Library/Application Support/device-traffic-monitor/`
-- Linux: `~/.local/share/device-traffic-monitor/`
-- Windows: `%LOCALAPPDATA%/device-traffic-monitor/`
+Data stored in SQLite at:
+- **macOS:** `~/Library/Application Support/device-traffic-monitor/traffic.db`
+- **Linux:** `$XDG_DATA_HOME/device-traffic-monitor/traffic.db`
+- **Windows:** `%LOCALAPPDATA%\device-traffic-monitor\traffic.db`
 
-## Tools Reference
-
-### Query Tools (read-only)
-
-| Tool | Description |
-|------|-------------|
-| `query_traffic` | Query recorded traffic by time range, device, severity, content |
-| `search_traffic` | Search for patterns with surrounding context lines |
-| `get_traffic_summary` | Aggregate statistics per device (line counts, error counts) |
-| `get_device_status` | Real-time health status of monitored devices |
-| `list_devices` | List all registered device monitors |
-
-### Control Tools
-
-| Tool | Description |
-|------|-------------|
-| `start_recorder` | Start recording (all devices or specific ones) |
-| `stop_recorder` | Stop recording with optional flush |
-| `get_recorder_status` | Engine state, uptime, per-device poller details |
-| `register_monitor` | Register a new device monitor at runtime |
-| `remove_monitor` | Remove a device monitor (with force option) |
-
-### Time Parameters
-
-All time parameters accept:
-- ISO 8601 timestamps: `2024-01-15T10:30:00Z`
-- Relative expressions: `-30s`, `-5m`, `-1h`, `-7d`
-
-### Example Agent Workflow
-
-```
-1. list_devices          → see what's configured
-2. start_recorder        → begin recording all devices
-3. get_recorder_status   → verify recording is active
-4. query_traffic(-30s)   → check recent output
-5. search_traffic(ERROR) → find errors with context
-6. get_traffic_summary   → aggregate view
-7. stop_recorder         → stop when done
-```
-
-## Testing
+## Development
 
 ```bash
-dotnet test
+dotnet build          # build all projects
+dotnet test           # run tests (15 xUnit tests)
+dotnet pack src/DeviceTrafficMonitor.Server  # create NuGet package
 ```
 
 ## Architecture
 
-- **Core library**: Models and interfaces (no dependencies)
-- **Server**: MCP server + recorder engine + SQLite storage
-- **MockDeviceMonitor**: Test MCP server for integration testing
+- **Core** (`src/DeviceTrafficMonitor.Core/`) — Models and interfaces, zero dependencies
+- **Server** (`src/DeviceTrafficMonitor.Server/`) — MCP server, recorder engine, SQLite storage
+- **TUI** (`src/DeviceTrafficMonitor.Tui/`) — Interactive terminal UI (Terminal.Gui)
+- **MockDeviceMonitor** (`tests/MockDeviceMonitor/`) — Fake device for testing
+- **Tests** (`tests/DeviceTrafficMonitor.Server.Tests/`) — xUnit tests
 
-The recorder acts as an MCP client to existing device monitor servers, polling them in short time slices and writing parsed output to SQLite. The MCP server exposes tools for querying and controlling the recorder.
+## License
+
+MIT

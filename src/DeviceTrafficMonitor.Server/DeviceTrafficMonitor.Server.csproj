@@ -18,14 +18,29 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>DeviceTrafficMonitor</AssemblyName>
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
+
+    <!-- dotnet tool packaging -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>device-traffic-monitor</ToolCommandName>
+    <PackageId>DeviceTrafficMonitor</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>thompcd</Authors>
+    <Description>MCP server for recording and querying device console traffic. Connects to embedded device monitors over stdio, records output to SQLite, and exposes query/search/control tools via the Model Context Protocol.</Description>
+    <PackageProjectUrl>https://github.com/thompcd/DeviceTrafficMonitor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/thompcd/DeviceTrafficMonitor</RepositoryUrl>
+    <PackageTags>mcp;iot;serial;embedded;device-monitor;traffic;model-context-protocol</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>
