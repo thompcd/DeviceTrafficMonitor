@@ -1,14 +1,23 @@
 # DeviceTrafficMonitor
 
 ## Build & Test
-- `dotnet build` — build all 4 projects from repo root
+- `dotnet build` — build all 5 projects from repo root
 - `dotnet test` — run xUnit tests (15 tests in Server.Tests)
+- `dotnet pack src/DeviceTrafficMonitor.Server -c Release` — create NuGet tool package
 - `dotnet publish src/DeviceTrafficMonitor.Server -r osx-arm64 -o publish/` — self-contained binary
 - .NET 10 preview SDK required (`brew install dotnet-sdk@preview`)
+
+## Versioning
+- Uses semantic versioning (MAJOR.MINOR.PATCH)
+- Version is in `src/DeviceTrafficMonitor.Server/DeviceTrafficMonitor.Server.csproj` `<Version>` element
+- **Every PR MUST bump the version** — patch for fixes, minor for features, major for breaking changes
+- To release: `git tag v<VERSION>` and push the tag — GitHub Actions publishes to NuGet automatically
+- The tag version must match the csproj `<Version>` value
 
 ## Architecture
 - **Core** (`src/DeviceTrafficMonitor.Core/`) — Models + interfaces, zero dependencies
 - **Server** (`src/DeviceTrafficMonitor.Server/`) — MCP server, recorder engine, SQLite storage
+- **TUI** (`src/DeviceTrafficMonitor.Tui/`) — Interactive terminal UI (Terminal.Gui v2)
 - **MockDeviceMonitor** (`tests/MockDeviceMonitor/`) — Fake MCP device for integration testing
 - **Tests** (`tests/DeviceTrafficMonitor.Server.Tests/`) — xUnit tests
 

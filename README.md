@@ -171,6 +171,27 @@ dotnet test           # run tests (15 xUnit tests)
 dotnet pack src/DeviceTrafficMonitor.Server  # create NuGet package
 ```
 
+### Releasing
+
+This project uses [semantic versioning](https://semver.org/). The version lives in `src/DeviceTrafficMonitor.Server/DeviceTrafficMonitor.Server.csproj`:
+
+```xml
+<Version>1.0.0</Version>
+```
+
+To release:
+
+1. Bump `<Version>` in the csproj (patch for fixes, minor for features, major for breaking changes)
+2. Commit the version bump
+3. Tag and push:
+   ```bash
+   git tag v1.0.1
+   git push origin v1.0.1
+   ```
+4. GitHub Actions builds, tests, and publishes to NuGet automatically
+
+Requires `NUGET_API_KEY` secret configured in repo Settings > Secrets.
+
 ## Architecture
 
 - **Core** (`src/DeviceTrafficMonitor.Core/`) — Models and interfaces, zero dependencies
